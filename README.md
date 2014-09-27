@@ -42,4 +42,5 @@ This software is distributed under the Apache v2.0 license. See LICENSE for more
 
 	
 **To do**	
-Add instructions on how to retrain your own model
+* Add instructions on how to retrain your own model
+* Add list of training files 
