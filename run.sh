@@ -14,13 +14,12 @@ outputfile=${inputfile%.naf}.sonarsrl.naf
 # First step is to create a feature vector from the NAF file
 cat $inputfile | python nafAlpinoToSRLFeatures.py > timblfile.csv
 
-# Run the trained model on the newly created feature vector 
-# To do: make sure the training data is contained in a model 
+# Run the trained model on the newly created feature vector  
 # To do: also build a timbl server option
-timbl -mO:I1,2,3,4 -i vua-srl-model.wgt -t timblfile.csv > timblfile.out 
+timbl -mO:I1,2,3,4 -i e-mags_mags_press_newspapers.wgt -t timblfile.csv -o timblpredictions 
 
 # Insert the SRL values into the NAF file 
-python timblToAlpinoNAF.py $inputfile timblfile.out > $outputfile
+python timblToAlpinoNAF.py $inputfile timblpredictions > $outputfile
  
 
 

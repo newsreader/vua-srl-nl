@@ -18,11 +18,12 @@ from KafNafParserPy import KafNafParser
 import re
 import sys 
 from collections import OrderedDict
+import codecs
 
 input = sys.stdin
 
 my_parser = KafNafParser(input)
-
+	 
 ### We first need a list of the predicates that we want to create feature vectors for
 predicates = {} 
 for term_obj in my_parser.get_terms():
@@ -77,6 +78,7 @@ def rewrite_postag(term):
 	morphofeat = my_parser.get_term(term).get_morphofeat()
 	parts = morphofeat.split(',')
 	postag = (parts[0] + ')')
+	postag = postag.replace('))', ')')
 	return(postag)		
 	
 # The argument categories are pulled out of the constituency trees
@@ -162,17 +164,19 @@ for head_obj in my_parser.get_dependencies():
 								argument[item].append(int(x))
 					if int(to_arg) > int(from_arg):
 						for x in range(int(from_arg)+1,int(to_arg)+1): 
+							xterm = 't_' + str(x)
 							if my_parser.get_term(xterm).get_pos() == 'verb':
 								break
 							if argument.get(item) is not None:
 								argument[item].append(int(x))
 							else:
 								argument[item] = []
-								argument[item].append(int(x))	
+								argument[item].append(int(x))
 			# And make sure again that the list contains no duplicates and is sorted
-			list3 = list(set(argument[item]))
-			list3.sort(key=int)
-			argument[item] = list3
+			if argument.get(item) is not None:
+				list3 = list(set(argument[item]))
+				list3.sort(key=int)
+				argument[item] = list3
 
 for item in argument:
 	for thing in argument[item]:
@@ -217,7 +221,7 @@ for pred in predicate_arguments:
 				else:
 					arg_cat_pattern = arg_cat_pattern + '*' + argument_category_head[part_id]
 				arg_dep_pattern = arg_dep_pattern + '*' + head_dependency[part_id]
-			elif len(argument[d_arg]) > 1:
+			elif argument.get(d_arg) is not None and len(argument[d_arg]) > 1:
 				if argument_category_head.get(part_id) is None:
 					if argument_category_deep.get(part_id) is not None:
 						arg_cat_pattern = arg_cat_pattern + '*' + argument_category_deep[part_id]
@@ -240,7 +244,8 @@ for pred in predicate_arguments:
 # also use this info to assign the voice
 voice = {}					
 for verb in auxiliary_verbs:
-	del predicates[auxiliary_verbs[verb]]
+	if predicates.get(auxiliary_verbs[verb]) is not None:
+		del predicates[auxiliary_verbs[verb]]
 	if my_parser.get_term(auxiliary_verbs[verb]).get_lemma() == 'worden' or my_parser.get_term(auxiliary_verbs[verb]).get_lemma() == 'zijn':
 		voice[verb] = 'passive'
 	else:
@@ -254,47 +259,61 @@ for predicate in predicates:
 		voice[predicate] = 'active'
 	pos = rewrite_postag(predicate)
 	#print predicate, my_parser.get_term(predicate).get_lemma(), pos.lower()
-	for arg in predicate_arguments[predicate]:
-		argument_head = ('t_' + str(arg))
-		vector_id = predicate + ',t_' + str(arg)
-		vectors[vector_id] = vector_id 
-		# check if there is an argument category for the argument head
-		# otherwise, set value to '#'
-		if argument_category_head.get(argument_head) is None:
-			argument_category_head[argument_head] = '#'
-		# Get the predicate position and compare it to the argument position to obtain
-		# the argument position feature
-		position = 'before'  
-		predicate_pos = predicate.strip('t_')
-		if int(predicate_pos) < int(arg):
-			position = 'after'
-		# rewrite the pos tag of the argument 
-		argpos = rewrite_postag(argument_head)
-		# get the first and last tokens and their POS tags of the argument
-		# if the argument contains more than one token, otherwise, the value is '#'
-		arg_start_lemma = '#'
-		arg_start_pos = '#'
-		arg_end_lemma = '#'
-		arg_end_pos = '#'
-		if len(argument[arg]) > 1:
-			arg_start = ('t_' + str(argument[arg][0]))
-			arg_start_lemma = my_parser.get_term(arg_start).get_lemma()
-			arg_start_pos = rewrite_postag(arg_start)
-			arg_end = ('t_' + str(argument[arg][-1]))
-			arg_end_lemma = my_parser.get_term(arg_end).get_lemma()
-			arg_end_pos = rewrite_postag(arg_end)	
-		pred_arg_id = predicate + '-' + argument_head
-		# The arg cat+relpattern consists of the arg_cat and the arg_dep
-		# if argcat is '#', then the second part is left open
-		arg_cat_rel = str(head_dependency[argument_head]) + '*'
-		if argument_category_head[argument_head] != '#':
-			arg_cat_rel = arg_cat_rel + argument_category_head[argument_head]
-		# Add features to the vector 
-		vectors[vector_id] = vector_id + ',t_' + str(argument[arg][0]) + ',t_' + str(argument[arg][-1]) + ',' +  my_parser.get_term(predicate).get_lemma() + ',' + pos.lower() + ',' + voice[predicate] + ',' + argument_category_head[argument_head] + ',' + str(head_dependency[argument_head]) + ',' + position + ',' + my_parser.get_term(argument_head).get_lemma() + ',' + argpos.lower() + ',' + arg_start_lemma + ',' + arg_start_pos + ',' + arg_end_lemma + ',' + arg_end_pos +',' +  arg_cat_patterns[pred_arg_id] + ',' + arg_dep_patterns[pred_arg_id] + ',' + arg_cat_rel + ',' + '#' 
+	if predicate_arguments.get(predicate) is not None:
+		for arg in predicate_arguments[predicate]:
+			argument_head = ('t_' + str(arg))
+			vector_id = predicate + ',t_' + str(arg)
+			vectors[vector_id] = vector_id 
+			# check if there is an argument category for the argument head
+			# otherwise, set value to '#'
+			if argument_category_head.get(argument_head) is None:
+				argument_category_head[argument_head] = '#'
+			# Get the predicate position and compare it to the argument position to obtain
+			# the argument position feature
+			position = 'before'  
+			predicate_pos = predicate.strip('t_')
+			if int(predicate_pos) < int(arg):
+				position = 'after'
+			# rewrite the pos tag of the argument 
+			argpos = rewrite_postag(argument_head)
+			# get the first and last tokens and their POS tags of the argument
+			# if the argument contains more than one token, otherwise, the value is '#'
+			arg_start_lemma = '#'
+			arg_start_pos = '#'
+			arg_end_lemma = '#'
+			arg_end_pos = '#'
+			if argument.get(arg) is not None and len(argument[arg]) > 1:
+				arg_start = ('t_' + str(argument[arg][0]))
+				arg_start_lemma = my_parser.get_term(arg_start).get_lemma()
+				arg_start_pos = rewrite_postag(arg_start)
+				arg_end = ('t_' + str(argument[arg][-1]))
+				arg_end_lemma = my_parser.get_term(arg_end).get_lemma()
+				arg_end_pos = rewrite_postag(arg_end)
+			elif argument.get(arg) is None:
+				argument[arg] = '#'	
+			# This is to make sure no extra commas get added to the feature vector 
+			if arg_start_lemma == ',':
+				arg_start_lemma = '#' 
+				arg_start_pos = '#'
+			if arg_end_lemma == ',':
+				arg_end_lemma = '#'
+				arg_end_pos = '#' 
+			# You also don't want commas inside numbers 
+			arg_start_lemma = arg_start_lemma.replace(',', '.')
+			arg_end_lemma = arg_end_lemma.replace(',', '.')
+				 
+			pred_arg_id = predicate + '-' + argument_head
+			# The arg cat+relpattern consists of the arg_cat and the arg_dep
+			# if argcat is '#', then the second part is left open
+			arg_cat_rel = str(head_dependency[argument_head]) + '*'
+			if argument_category_head[argument_head] != '#':
+				arg_cat_rel = arg_cat_rel + argument_category_head[argument_head]
+			# Add features to the vector 
+			vectors[vector_id] = vector_id + ',t_' + str(argument[arg][0]) + ',t_' + str(argument[arg][-1]) + ',' +  my_parser.get_term(predicate).get_lemma() + ',' + pos.lower() + ',' + voice[predicate] + ',' + argument_category_head[argument_head] + ',' + str(head_dependency[argument_head]) + ',' + position + ',' + my_parser.get_term(argument_head).get_lemma() + ',' + argpos.lower() + ',' + arg_start_lemma + ',' + arg_start_pos + ',' + arg_end_lemma + ',' + arg_end_pos +',' +  arg_cat_patterns[pred_arg_id] + ',' + arg_dep_patterns[pred_arg_id] + ',' + arg_cat_rel + ',' + '#' 
 		
 # Print vectors 
 for vector in vectors:
-	print vectors[vector]
+	print vectors[vector].encode('utf-8')
 	
 	
 
