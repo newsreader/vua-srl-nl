@@ -6,6 +6,12 @@
 # Author: Marieke van Erp (marieke.van.erp@vu.nl) 
 # Date: 27 September 2014
 
+#
+# Update 20 February 2015:
+# It seems there was a bug in writing the correct term_ids, 
+# namely the last term_id wasn't copied over to the role span
+# This is fixed in this version
+
 from KafNafParserPy import *
 import sys 
 import datetime
@@ -80,7 +86,7 @@ with open(timblpredictions) as f:
 			head_target.set_head('yes')
 			role_span.add_target(head_target)
 		else:
-			for arg_token in range (int(arg_start), int(arg_end)):
+			for arg_token in range (int(arg_start), int(arg_end)+1):
 				target_term_id = ('t_' + str(arg_token))
 				if target_term_id == items[1]:
 					head_target = Ctarget()
