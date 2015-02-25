@@ -7,6 +7,7 @@
 #  
 # author: Marieke van Erp 
 # date: 27 September 2014 
+# Update: 25 February 2015: new model 
 
 inputfile=$1
 outputfile=${inputfile%.naf}.sonarsrl.naf
@@ -16,7 +17,7 @@ cat $inputfile | python nafAlpinoToSRLFeatures.py > timblfile.csv
 
 # Run the trained model on the newly created feature vector  
 # To do: also build a timbl server option
-timbl -mO:I1,2,3,4 -i e-mags_mags_press_newspapers.wgt -t timblfile.csv -o timblpredictions 
+timbl -mO:I1,2,3,4 -i 25Feb2015_e-mags_mags_press_newspapers.wgt -t timblfile.csv -o timblpredictions 
 
 # Insert the SRL values into the NAF file 
 python timblToAlpinoNAF.py $inputfile timblpredictions > $outputfile

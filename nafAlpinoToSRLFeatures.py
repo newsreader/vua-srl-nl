@@ -13,6 +13,9 @@
 #
 # Author: Marieke van Erp (marieke.van.erp@vu.nl)
 # Date: 27 September 2014
+#
+# Update 23 February 2015: better constituent extraction for feature generation
+# with help from Ruben Izquierdo
 
 
 from KafNafParserPy import KafNafParser
@@ -146,6 +149,7 @@ for id in predicate_arguments:
 	for item in predicate_arguments[id]:
 		try:
 			for chunk in my_parser.get_constituency_extractor().get_all_chunks_for_term("t_" + str(item)):
+				#print id, "t_",item, chunk[0], chunk
 				if chunk[0] != 'smain' and chunk[0] != 'top' and chunk[0] != 'inf':
 					if chunk[1].count(id) == 1:
 						break
