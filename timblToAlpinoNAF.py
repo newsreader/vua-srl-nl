@@ -28,7 +28,7 @@ my_parser = KafNafParser(nafinput)
 ## Create header info
 lp = Clp()
 lp.set_name('SoNaR-News-trained-SRL')
-lp.set_version('1.0')
+lp.set_version('1.1')
 lp.set_timestamp()
 my_parser.add_linguistic_processor('srl', lp)
 
