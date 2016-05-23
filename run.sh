@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/bin/bash
 
 # This script runs the Dutch SRL pipeline together
 # it takes a NAF file with terms and Alpino dependencies as input
@@ -9,18 +9,24 @@
 # date: 27 September 2014 
 # Update: 25 February 2015: new model 
 
-inputfile=$1
-outputfile=${inputfile%.naf}.sonarsrl.naf
+set -e
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# [WvA] Create temp file for input and intermediate files
+TMPFIL=`mktemp -t stap6.XXXXXX`
+cat >$TMPFIL
+
+TMPFILOUT=`mktemp -t stap6.XXXXXX`
+TMPFILCSV=`mktemp -t stap6.XXXXXX`
 
 # First step is to create a feature vector from the NAF file
-cat $inputfile | python nafAlpinoToSRLFeatures.py > timblfile.csv
+python $DIR/nafAlpinoToSRLFeatures.py  < $TMPFIL  > $TMPFILCSV
 
-# Run the trained model on the newly created feature vector  
-# To do: also build a timbl server option
-timbl -mO:I1,2,3,4 -i 25Feb2015_e-mags_mags_press_newspapers.wgt -t timblfile.csv -o timblpredictions 
+timbl -mO:I1,2,3,4 -i $DIR/25Feb2015_e-mags_mags_press_newspapers.wgt -t $TMPFILCSV -o $TMPFILOUT +vs >&2;
 
 # Insert the SRL values into the NAF file 
-python timblToAlpinoNAF.py $inputfile timblpredictions > $outputfile
- 
+python $DIR/timblToAlpinoNAF.py $TMPFIL $TMPFILOUT
 
-
+rm $TMPFIL
+rm $TMPFILOUT
+rm $TMPFILCSV
